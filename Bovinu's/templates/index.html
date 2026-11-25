@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kilo IA — Controle de Peso</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 16px;
+      background: #f7f8fa;
+      color: #1f2937;
+    }
+    .brand {
+      position: relative;
+      left: 50%;
+      width: 100vw;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 120px;
+      background: #cb270c;
+      overflow: hidden;
+    }
+    .logo-img {
+      display: block;
+      width: 120px;
+      height: 120px;
+      margin-left: max(16px, calc((100vw - 900px) / 4 + 8px));
+      object-fit: contain;
+      flex-shrink: 0;
+    }
+    h1 { margin-bottom: 4px; }
+    .sub { color: #6b7280; margin-top: 0; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 18px;
+    }
+    label { display: block; font-weight: bold; margin-top: 10px; font-size: 14px; }
+    input, button {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 9px 10px;
+      margin-top: 5px;
+      border-radius: 6px;
+      border: 1px solid #d1d5db;
+      font-size: 14px;
+    }
+    button {
+      background: #111827;
+      color: #fff;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 14px;
+    }
+    button:hover { background: #374151; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    ul { padding-left: 18px; }
+    li { margin-bottom: 6px; }
+    .status { margin-top: 10px; font-size: 13px; color: #4b5563; }
+  </style>
+</head>
+<body>
+
+  <header class="brand">
+    <img src="/static/logo.jpg" alt="Logo Bovinu's IA" class="logo-img"
+         onerror="this.onerror=null; this.src='logo.jpg';" />
+  </header>
+
+  <div class="grid">
+    <div class="card">
+      <h2>1. Analisar Prato</h2>
+      <form id="form-prato">
+        <label for="cliente_id">ID do Cliente / Comanda</label>
+        <input id="cliente_id" name="cliente_id" value="cli_001" required />
+
+        <label for="peso_balanca">Peso da Balança (g) — opcional</label>
+        <input id="peso_balanca" name="peso_balanca_gramas" type="number" step="0.1" placeholder="Ex.: 450" />
+
+        <label>Webcam ao Vivo</label>
+        <div style="display:flex; gap:8px; margin-top:6px;">
+          <button id="btn-abrir-cam" type="button" style="margin-top:0;">Ligar Câmera</button>
+          <button id="btn-capturar" type="button" style="margin-top:0; background:#2563eb;" disabled>Capturar Foto</button>
+          <button id="btn-fechar-cam" type="button" style="margin-top:0; background:#6b7280;" disabled>Desligar</button>
+        </div>
+
+        <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin-top:10px; cursor:pointer;">
+          <input id="auto-enviar" type="checkbox" checked style="width:auto; margin:0;" />
+          Enviar automaticamente ao clicar em Capturar Foto
+        </label>
+
+        <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin-top:8px; cursor:pointer;">
+          <input id="limpar-balanca" type="checkbox" checked style="width:auto; margin:0;" />
+          Limpar peso da balança após envio
+        </label>
+
+        <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin-top:8px; cursor:pointer;">
+          <input id="auto-incrementar-cliente" type="checkbox" checked style="width:auto; margin:0;" />
+          Incrementar ID do cliente automaticamente após envio
+        </label>
+
+        <video id="video-cam" autoplay playsinline style="width:100%; max-height:220px; background:#000; border-radius:6px; margin-top:10px; display:none;"></video>
+        <canvas id="canvas-cam" style="display:none;"></canvas>
+        <img id="preview-foto" alt="Prévia da captura" style="width:100%; max-height:220px; object-fit:contain; border-radius:6px; margin-top:10px; display:none; border:1px solid #e5e7eb;" />
+
+        <label for="imagem">Ou enviar arquivo de imagem (JPEG, PNG, WEBP)</label>
+        <input id="imagem" name="imagem" type="file" accept="image/jpeg,image/png,image/webp" />
+
+        <button type="submit">Enviar e Calcular Peso</button>
+      </form>
+      <div id="status-prato" class="status"></div>
+      <div id="resultado-prato"></div>
+    </div>
+
+    <div class="card">
+      <h2>2. Total do Dia por Alimento</h2>
+      <label for="data-relatorio">Data (America/Sao_Paulo)</label>
+      <input id="data-relatorio" type="date" />
+      <button id="btn-relatorio" type="button">Consultar Dia</button>
+      <div id="status-relatorio" class="status"></div>
+      <div id="resultado-relatorio"></div>
+    </div>
+  </div>
+
+  <script>
+    const inputData = document.getElementById("data-relatorio");
+    const hojeSP = new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
+    inputData.value = hojeSP;
+
+    const formPrato = document.getElementById("form-prato");
+    const inputCliente = document.getElementById("cliente_id");
+    const inputPesoBalanca = document.getElementById("peso_balanca");
+    const videoEl = document.getElementById("video-cam");
+    const canvasEl = document.getElementById("canvas-cam");
+    const previewEl = document.getElementById("preview-foto");
+    const inputArquivo = document.getElementById("imagem");
+    const autoEnviarEl = document.getElementById("auto-enviar");
+    const limparBalancaEl = document.getElementById("limpar-balanca");
+    const autoIncrementarClienteEl = document.getElementById("auto-incrementar-cliente");
+    const btnAbrir = document.getElementById("btn-abrir-cam");
+    const btnCapturar = document.getElementById("btn-capturar");
+    const btnFechar = document.getElementById("btn-fechar-cam");
+
+    let streamAtual = null;
+    let fotoCapturadaBlob = null;
+    let enviando = false;
+
+    function incrementarIdCliente(idAtual) {
+      const match = idAtual.match(/^(.*?)(\d+)$/);
+      if (!match) return idAtual;
+      const [, prefixo, digitos] = match;
+      const proximoNum = String(parseInt(digitos, 10) + 1).padStart(digitos.length, "0");
+      return `${prefixo}${proximoNum}`;
+    }
+
+    function desligarCamera() {
+      if (streamAtual) {
+        streamAtual.getTracks().forEach((t) => t.stop());
+        streamAtual = null;
+      }
+      videoEl.srcObject = null;
+      videoEl.style.display = "none";
+      btnCapturar.disabled = true;
+      btnFechar.disabled = true;
+      btnAbrir.disabled = false;
+    }
+
+    async function enviarImagemPrato(imagemFile) {
+      if (enviando) return;
+      const statusEl = document.getElementById("status-prato");
+      const resEl = document.getElementById("resultado-prato");
+      const clienteId = inputCliente.value.trim();
+
+      if (!clienteId) {
+        statusEl.textContent = "Informe o ID do Cliente / Comanda antes de enviar.";
+        return;
+      }
+      if (!imagemFile) {
+        statusEl.textContent = "Capture uma foto pela webcam ou escolha um arquivo antes de enviar.";
+        return;
+      }
+
+      enviando = true;
+      btnCapturar.disabled = true;
+      statusEl.textContent = "Analisando imagem...";
+      resEl.innerHTML = "";
+
+      const formData = new FormData();
+      formData.append("cliente_id", clienteId);
+      formData.append("imagem", imagemFile);
+
+      const pesoBalanca = inputPesoBalanca.value;
+      if (pesoBalanca) {
+        formData.append("peso_balanca_gramas", pesoBalanca);
+      }
+
+      try {
+        const resp = await fetch("/api/pratos/analisar", { method: "POST", body: formData });
+        const responseText = await resp.text();
+        let data = null;
+        if (responseText) {
+          try {
+            data = JSON.parse(responseText);
+          } catch {
+            if (resp.ok) {
+              throw new Error("O servidor retornou uma resposta inválida.");
+            }
+          }
+        }
+        if (!resp.ok) {
+          const detalhe = data && typeof data.detail === "string"
+            ? data.detail
+            : `O servidor retornou o erro HTTP ${resp.status}.`;
+          statusEl.textContent = "Erro: " + detalhe;
+          return;
+        }
+        if (!data) {
+          throw new Error("O servidor retornou uma resposta vazia.");
+        }
+        statusEl.textContent = `Prato #${data.prato_id} salvo (${data.cliente_id}) — Total: ${data.peso_total_gramas} g`;
+        const itensHtml = data.itens
+          .map((i) => `<li><strong>${i.alimento}</strong>: ${i.peso_gramas} g (confiança ${Math.round(i.confianca * 100)}%)</li>`)
+          .join("");
+        resEl.innerHTML = `<ul>${itensHtml}</ul>`;
+
+        if (limparBalancaEl.checked) {
+          inputPesoBalanca.value = "";
+        }
+        if (autoIncrementarClienteEl.checked) {
+          inputCliente.value = incrementarIdCliente(inputCliente.value.trim());
+        }
+
+        carregarRelatorio(inputData.value);
+      } catch (err) {
+        const apiOrigin = "http://127.0.0.1:8000";
+        const pageOrigin = window.location.origin;
+        const nextStep = pageOrigin !== apiOrigin
+          ? `Abra ${apiOrigin} no navegador (página atual: ${pageOrigin === "null" ? "arquivo local" : pageOrigin}).`
+          : `Confirme que o servidor está rodando em ${apiOrigin}.`;
+        statusEl.textContent = `Falha de rede: não foi possível alcançar a API. ${nextStep}`;
+      } finally {
+        enviando = false;
+        if (streamAtual) {
+          btnCapturar.disabled = false;
+        }
+      }
+    }
+
+    btnAbrir.addEventListener("click", async () => {
+      const statusEl = document.getElementById("status-prato");
+      try {
+        streamAtual = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+          audio: false,
+        });
+        videoEl.srcObject = streamAtual;
+        videoEl.style.display = "block";
+        btnCapturar.disabled = false;
+        btnFechar.disabled = false;
+        btnAbrir.disabled = true;
+        statusEl.textContent = "Câmera ativa. Posicione o prato e clique em Capturar Foto.";
+      } catch (err) {
+        statusEl.textContent = "Erro ao acessar webcam: " + err.message;
+      }
+    });
+
+    btnCapturar.addEventListener("click", () => {
+      if (!streamAtual || !videoEl.videoWidth || enviando) return;
+      canvasEl.width = videoEl.videoWidth;
+      canvasEl.height = videoEl.videoHeight;
+      const ctx = canvasEl.getContext("2d");
+      ctx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
+
+      canvasEl.toBlob((blob) => {
+        if (!blob) return;
+        fotoCapturadaBlob = blob;
+        inputArquivo.value = "";
+        previewEl.src = URL.createObjectURL(blob);
+        previewEl.style.display = "block";
+
+        const arquivoCam = new File([blob], "webcam_prato.jpg", { type: "image/jpeg" });
+        if (autoEnviarEl.checked) {
+          enviarImagemPrato(arquivoCam);
+        } else {
+          document.getElementById("status-prato").textContent =
+            "Foto capturada! Clique em 'Enviar e Calcular Peso'.";
+        }
+      }, "image/jpeg", 0.9);
+    });
+
+    btnFechar.addEventListener("click", desligarCamera);
+
+    inputArquivo.addEventListener("change", () => {
+      if (inputArquivo.files.length > 0) {
+        fotoCapturadaBlob = null;
+        previewEl.style.display = "none";
+      }
+    });
+
+    formPrato.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const arquivoSelecionado = inputArquivo.files[0];
+      const imagemParaEnviar = fotoCapturadaBlob
+        ? new File([fotoCapturadaBlob], "webcam_prato.jpg", { type: "image/jpeg" })
+        : arquivoSelecionado;
+      await enviarImagemPrato(imagemParaEnviar);
+    });
+
+    async function carregarRelatorio(dataStr) {
+      const statusEl = document.getElementById("status-relatorio");
+      const resEl = document.getElementById("resultado-relatorio");
+      statusEl.textContent = "Carregando...";
+
+      try {
+        const url = `/api/relatorios/alimentos-dia?data=${encodeURIComponent(dataStr)}`;
+        const resp = await fetch(url);
+        const data = await resp.json();
+        if (!resp.ok) {
+          statusEl.textContent = "Erro: " + (data.detail || resp.status);
+          return;
+        }
+        statusEl.textContent = `Dia ${data.data} — Total geral: ${data.peso_geral_kg} kg (${data.peso_geral_gramas} g)`;
+        if (!data.alimentos.length) {
+          resEl.innerHTML = "<p>Nenhum prato registrado nessa data.</p>";
+          return;
+        }
+        const linhas = data.alimentos
+          .map((a) => `<li><strong>${a.alimento}</strong>: ${a.peso_total_kg} kg (${a.peso_total_gramas} g) — ${a.quantidade_porcoes} porção(ões)</li>`)
+          .join("");
+        resEl.innerHTML = `<ul>${linhas}</ul>`;
+      } catch (err) {
+        statusEl.textContent = "Falha de rede: " + err.message;
+      }
+    }
+
+    document.getElementById("btn-relatorio").addEventListener("click", () => {
+      carregarRelatorio(inputData.value);
+    });
+
+    carregarRelatorio(hojeSP);
+  </script>
+</body>
+</html>
