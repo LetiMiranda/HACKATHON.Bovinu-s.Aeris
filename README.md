@@ -1,7 +1,7 @@
 # HACKATHON Bovinu's
 # 🍽️ EcoPrato — Reconhecimento de Alimentos e Controle de Peso por Visão Computacional
 
-> **EcoPrato** é uma aplicação web desenvolvida em **FastAPI** e **SQLite** com frontend em **HTML/JS** e captura ao vivo por **webcam**. Utiliza a **API do Gemini** para identificar alimentos em fotos de pratos de restaurante por quilo, estimar e calibrar o peso em gramas (com integração opcional de balança), registrar o consumo por cliente e gerar relatórios diários consolidados em `g` e `kg` no fuso horário `America/Sao_Paulo`.
+> **EcoPrato** é uma aplicação web desenvolvida em **FastAPI** e **SQLite** com frontend em **HTML/JS** e captura ao vivo por **webcam**. Utiliza a **API do Gemini** para identificar alimentos em fotos de pratos de restaurante por quilo, estimar e calibrar o peso em gramas (com integração opcional de balança), registrar o consumo por cliente e gerar relatórios diários consolidados em `gramas` e `kilogramas`.
 
 ---
 
