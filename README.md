@@ -57,6 +57,6 @@ kilo-ia/
 ├── .env.example             # Exemplo de variáveis de ambiente
 ├── .gitignore
 └── requirements.txt
-'''
+
 
 
