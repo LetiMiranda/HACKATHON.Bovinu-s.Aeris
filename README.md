@@ -27,6 +27,19 @@
 
 ---
 
+## 🖥️ Solução (em imagens)
+<img width="1832" height="705" alt="image" src="https://github.com/user-attachments/assets/d418b24f-dd29-418a-a274-a001520d1710" />
+
+---
+
+## 🎞️ Vídeo de Apresentação
+
+---
+
+## 🎓 Slides
+
+---
+
 ## 📁 Estrutura do Projeto
 
 ```text
@@ -44,3 +57,6 @@ kilo-ia/
 ├── .env.example             # Exemplo de variáveis de ambiente
 ├── .gitignore
 └── requirements.txt
+'''
+
+
