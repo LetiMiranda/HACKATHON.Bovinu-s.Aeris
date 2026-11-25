@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kilo IA — Controle de Peso</title>
+  <title>Controle de Peso</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -81,7 +81,7 @@
 
   <div class="grid">
     <div class="card">
-      <h2>1. Analisar Prato</h2>
+      <h2>Analise de Prato</h2>
       <form id="form-prato">
         <label for="cliente_id">ID do Cliente / Comanda</label>
         <input id="cliente_id" name="cliente_id" value="cli_001" required />
@@ -125,8 +125,8 @@
     </div>
 
     <div class="card">
-      <h2>2. Total do Dia por Alimento</h2>
-      <label for="data-relatorio">Data (America/Sao_Paulo)</label>
+      <h2>Total do Dia por Alimento</h2>
+      <label for="data-relatorio">Data</label>
       <input id="data-relatorio" type="date" />
       <button id="btn-relatorio" type="button">Consultar Dia</button>
       <div id="status-relatorio" class="status"></div>
@@ -331,7 +331,8 @@
           statusEl.textContent = "Erro: " + (data.detail || resp.status);
           return;
         }
-        statusEl.textContent = `Dia ${data.data} — Total geral: ${data.peso_geral_kg} kg (${data.peso_geral_gramas} g)`;
+        const [ano, mes, dia] = data.data.split("-");
+        statusEl.textContent = `Dia ${dia}/${mes}/${ano.slice(-2)} — Total geral: ${data.peso_geral_kg} kg (${data.peso_geral_gramas} g)`;
         if (!data.alimentos.length) {
           resEl.innerHTML = "<p>Nenhum prato registrado nessa data.</p>";
           return;

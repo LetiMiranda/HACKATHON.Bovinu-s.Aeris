@@ -8,7 +8,7 @@ class ItemEstimadoIA(BaseModel):
         description="Nome do alimento em português minúsculo, ex.: arroz branco, frango grelhado"
     )
     peso_gramas_estimado: float = Field(
-        gt=0, description="Estimativa visual do peso da porção em gramas"
+        ge=0, description="Estimativa visual do peso da porção em gramas"
     )
     confianca: float = Field(
         ge=0, le=1, description="Nível de confiança da identificação entre 0 e 1"

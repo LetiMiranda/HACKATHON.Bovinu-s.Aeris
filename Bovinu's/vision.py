@@ -3,11 +3,11 @@ from typing import List, Optional
 
 from fastapi import HTTPException
 from google import genai
-from google.genai import types
+from google.genai import errors, types
 
 from app.schemas import AnaliseVisaoIA, ItemEstimadoIA, ItemFinal
 
-MODEL_ID = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+MODEL_ID = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
 
 SINONIMOS_ALIMENTOS = {
     "arroz": "arroz branco",
@@ -46,24 +46,35 @@ def analisar_imagem_com_ia(image_bytes: bytes, mime_type: str) -> List[ItemEstim
     )
 
     client = get_client()
-    response = client.models.generate_content(
-        model=MODEL_ID,
-        contents=[
-            types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
-            prompt,
-        ],
-        config=types.GenerateContentConfig(
-            response_mime_type="application/json",
-            response_schema=AnaliseVisaoIA,
-            temperature=0.2,
-        ),
-    )
+    try:
+        response = client.models.generate_content(
+            model=MODEL_ID,
+            contents=[
+                types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
+                prompt,
+            ],
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=AnaliseVisaoIA,
+                temperature=0.2,
+            ),
+        )
+    except errors.APIError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Falha ao consultar o Gemini: {exc.message}",
+        ) from exc
 
     parsed: Optional[AnaliseVisaoIA] = response.parsed
     if parsed is None or not parsed.itens:
         raise HTTPException(
             status_code=422,
             detail="Não foi possível identificar alimentos na imagem enviada.",
+        )
+    if any(item.peso_gramas_estimado <= 0 for item in parsed.itens):
+        raise HTTPException(
+            status_code=422,
+            detail="A estimativa retornou um peso inválido para um ou mais alimentos.",
         )
     return parsed.itens
 
