@@ -37,6 +37,7 @@
 ---
 
 ## 🎓 Slides
+[EcoPrato.pptx](https://github.com/user-attachments/files/35463215/EcoPrato.pptx)
 
 ---
 
