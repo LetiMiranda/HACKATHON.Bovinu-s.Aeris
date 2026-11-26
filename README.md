@@ -43,7 +43,7 @@
 ## 📁 Estrutura do Projeto
 
 ```text
-kilo-ia/
+EcoPrato/
 ├── app/
 │   ├── __init__.py
 │   ├── main.py              # Rotas da API e entrega do frontend
